@@ -1,6 +1,14 @@
-// Node.js 서버 코드 — server.js
-const PORT = process.env.PORT || 8080;
-const wss = new WebSocket.Server({ port: PORT });
+const http = require('http');
+const WebSocket = require('ws');
+
+// HTTP 서버 생성
+const server = http.createServer((req, res) => {
+  res.writeHead(200);
+  res.end("WebSocket server is running.");
+});
+
+// WebSocket 서버를 HTTP 서버 위에 생성
+const wss = new WebSocket.Server({ server });
 
 let clients = [];
 
@@ -14,7 +22,6 @@ wss.on('connection', (ws) => {
   console.log("클라이언트 접속:", clients.length);
 
   ws.on('message', (msg) => {
-    // 다른 클라이언트에게 메시지 전달
     for (let client of clients) {
       if (client !== ws && client.readyState === WebSocket.OPEN) {
         client.send(msg);
@@ -28,5 +35,9 @@ wss.on('connection', (ws) => {
   });
 });
 
+// Render가 사용하는 포트로 HTTP 서버 시작
+const PORT = process.env.PORT || 8080;
+server.listen(PORT, () => {
+  console.log("HTTP/WebSocket 서버 실행 중 (포트 " + PORT + ")");
+});
 
-console.log("웹소켓 서버 실행 중 (포트 8080)");
