@@ -1,6 +1,6 @@
 // Node.js 서버 코드 — server.js
-const WebSocket = require('ws');
-const wss = new WebSocket.Server({ port: 8080 });
+const PORT = process.env.PORT || 8080;
+const wss = new WebSocket.Server({ port: PORT });
 
 let clients = [];
 
@@ -27,5 +27,6 @@ wss.on('connection', (ws) => {
     console.log("클라이언트 종료. 남은 수:", clients.length);
   });
 });
+
 
 console.log("웹소켓 서버 실행 중 (포트 8080)");
