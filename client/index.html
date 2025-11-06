@@ -72,57 +72,6 @@ Num 0: 포격
 
 <script>
 
-  const socket = new WebSocket("wss://tank-server-5xys.onrender.com"); // 실제 서버 주소로 변경
-
-socket.addEventListener('open', () => {
-  console.log('서버 연결됨');
-  // 플레이어 정보 전송 (초기화)
-  socket.send(JSON.stringify({ type: "join", id: Math.random().toString(36).slice(2) }));
-});
-
-function sendPlayerState() {
-  if (socket.readyState === WebSocket.OPEN) {
-    socket.send(JSON.stringify({
-      type: "state",
-      x: tank.x,
-      y: tank.y,
-      angle: tank.angle,
-      turretAngle: tank.turretAngle,
-      hp: tank.hp,
-    }));
-  }
-}
-
-socket.addEventListener('message', (event) => {
-  const msg = JSON.parse(event.data);
-
-  if (msg.type === 'state') {
-    opponentTank.x = msg.x;
-    opponentTank.y = msg.y;
-    opponentTank.angle = msg.angle;
-    opponentTank.turretAngle = msg.turretAngle;
-    opponentTank.hp = msg.hp;
-  }
-
-  if (msg.type === 'bullet') {
-    bullets.push({
-      x: msg.x,
-      y: msg.y,
-      vx: msg.vx,
-      vy: msg.vy,
-      life: 6,
-      dmg: msg.dmg,
-      r: msg.r,
-      explosive: msg.explosive,
-      splash: msg.splash || 0,
-      splashRadius: msg.splashRadius || 0,
-      type: msg.bulletType,
-      from: 'opponent'
-    });
-  }
-}); // ✅ 이걸로 socket listener 끝냄
-
-// ✅ 이제 즉시 실행 함수 시작
 (() => {
   // 🔊 사운드 파일 로드
 const sounds = {
@@ -168,6 +117,18 @@ window.addEventListener('click', () => {
   hp: 100,
     };
 
+  function sendPlayerState() {
+  if (!socket || socket.readyState !== WebSocket.OPEN) return;
+  socket.send(JSON.stringify({
+    type: "state",
+    x: tank.x,
+    y: tank.y,
+    angle: tank.angle,
+    turretAngle: tank.turretAngle,
+    hp: tank.hp,
+  }));
+}
+
   const muzzleFlashes = [];
 
   // Camera / view
@@ -191,6 +152,42 @@ window.addEventListener('click', () => {
       id: i+1,
     });
   }
+
+     socket = new WebSocket("wss://tank-server-5xys.onrender.com"); // 실제 서버 주소로 변경
+
+socket.addEventListener('open', () => {
+  console.log('서버 연결됨');
+  // 플레이어 정보 전송 (초기화)
+  socket.send(JSON.stringify({ type: "join", id: Math.random().toString(36).slice(2) }));
+});
+  socket.addEventListener('message', (event) => {
+  const msg = JSON.parse(event.data);
+
+  if (msg.type === 'state') {
+    opponentTank.x = msg.x;
+    opponentTank.y = msg.y;
+    opponentTank.angle = msg.angle;
+    opponentTank.turretAngle = msg.turretAngle;
+    opponentTank.hp = msg.hp;
+  }
+
+  if (msg.type === 'bullet') {
+    bullets.push({
+      x: msg.x,
+      y: msg.y,
+      vx: msg.vx,
+      vy: msg.vy,
+      life: 6,
+      dmg: msg.dmg,
+      r: msg.r,
+      explosive: msg.explosive,
+      splash: msg.splash || 0,
+      splashRadius: msg.splashRadius || 0,
+      type: msg.bulletType,
+      from: 'opponent'
+    });
+}
+});
 
   // Ammo types
   const AMMOS = {
@@ -795,6 +792,7 @@ if (reloadTimer > 0) {
 </script>
 </body>
 </html>
+
 
 
 
