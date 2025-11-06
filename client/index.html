@@ -219,40 +219,6 @@ socket.addEventListener('open', () => {
   function toDeg(rad){ return rad*180/Math.PI; }
   function angleTo(a,b){ let d = b - a; while(d>Math.PI) d-=Math.PI*2; while(d<-Math.PI) d+=Math.PI*2; return d; }
 
-  // 🔹 상대 전차 그리기 함수
-function drawOpponentTank(ctx, worldToScreen) {
-  const pos = worldToScreen(opponentTank.x, opponentTank.y);
-
-  ctx.save();
-  ctx.translate(pos.x, pos.y);
-  ctx.rotate(opponentTank.angle);
-
-  // 차체
-  ctx.fillStyle = '#a55';
-  ctx.fillRect(-28, -18, 56, 36);
-
-  // 궤도
-  ctx.fillStyle = '#333';
-  ctx.fillRect(-28, -26, 56, 8);
-  ctx.fillRect(-28, 18, 56, 8);
-  ctx.restore();
-
-  // 포탑
-  ctx.save();
-  ctx.translate(pos.x, pos.y);
-  ctx.rotate(opponentTank.turretAngle);
-  ctx.fillStyle = '#a33';
-  ctx.fillRect(0, -3, 42, 6);
-  ctx.restore();
-
-  // HP 바
-  ctx.fillStyle = '#f00';
-  ctx.fillRect(pos.x - 20, pos.y - 40, 40, 6);
-  ctx.fillStyle = '#0f0';
-  ctx.fillRect(pos.x - 20, pos.y - 40, 40 * (opponentTank.hp / 100), 6);
-}
-
-  // Input: map user's requested keys to codes
   // 사용자 키 매핑 (요청에 맞춤)
   const keyMap = {
       leftBrake: 'KeyC',   // ⬅ 좌측 궤도 브레이크
@@ -519,6 +485,37 @@ if (dist2 < 30 && b.from !== 'opponent') {
     const ry = dx*sina + dy*cosa;
     return { x: cx + rx, y: cy + ry };
   }
+      function drawOpponentTank(ctx, worldToScreen) {
+  const pos = worldToScreen(opponentTank.x, opponentTank.y);
+
+  ctx.save();
+  ctx.translate(pos.x, pos.y);
+  ctx.rotate(opponentTank.angle);
+
+  // 차체
+  ctx.fillStyle = '#a55';
+  ctx.fillRect(-28, -18, 56, 36);
+
+  // 궤도
+  ctx.fillStyle = '#333';
+  ctx.fillRect(-28, -26, 56, 8);
+  ctx.fillRect(-28, 18, 56, 8);
+  ctx.restore();
+
+  // 포탑
+  ctx.save();
+  ctx.translate(pos.x, pos.y);
+  ctx.rotate(opponentTank.turretAngle);
+  ctx.fillStyle = '#a33';
+  ctx.fillRect(0, -3, 42, 6);
+  ctx.restore();
+
+  // HP 바
+  ctx.fillStyle = '#f00';
+  ctx.fillRect(pos.x - 20, pos.y - 40, 40, 6);
+  ctx.fillStyle = '#0f0';
+  ctx.fillRect(pos.x - 20, pos.y - 40, 40 * (opponentTank.hp / 100), 6);
+}
 
   function draw(){
 
@@ -614,6 +611,9 @@ ctx.fillRect(-28, 18, 56, 8);
     // turret ring
     ctx.fillStyle = '#394';
     ctx.beginPath(); ctx.arc(0,0,12,0,Math.PI*2); ctx.fill();
+
+    drawOpponentTank(ctx, worldToScreen);
+    
     ctx.restore();
 
     ctx.strokeStyle = 'red';
@@ -762,7 +762,6 @@ if (reloadTimer > 0) {
 
     updateMuzzle(dt);
     updateBullets(dt);
-    drawOpponentTank(ctx, worldToScreen);
     checkAmmoSelect();
     updateMovement(dt);
     updateTurret(dt);
@@ -792,6 +791,7 @@ if (reloadTimer > 0) {
 </script>
 </body>
 </html>
+
 
 
 
