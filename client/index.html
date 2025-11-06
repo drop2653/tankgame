@@ -410,23 +410,6 @@ muzzleFlashes.push({
     m.alpha = m.life / 0.2;
     if (m.life <= 0) muzzleFlashes.splice(i,1);
 
-    const dx2 = b.x - opponentTank.x;
-const dy2 = b.y - opponentTank.y;
-const dist2 = Math.hypot(dx2, dy2);
-
-if (dist2 < 30 && b.from !== 'opponent') {
-  if (b.explosive) {
-    // 스플래시 데미지 적용 (단순화)
-    const ratio = 1 - dist2 / (b.splashRadius || 60);
-    const splashDmg = Math.round((b.splash || 0) * ratio);
-    opponentTank.hp -= splashDmg;
-  } else {
-    opponentTank.hp -= b.dmg;
-  }
-  bullets.splice(i, 1);
-  continue;
-}
-
   }
 }
 function updateBullets(dt){
@@ -461,6 +444,22 @@ function updateBullets(dt){
         bullets.splice(i,1);
         break;
       }
+          const dx2 = b.x - opponentTank.x;
+const dy2 = b.y - opponentTank.y;
+const dist2 = Math.hypot(dx2, dy2);
+
+if (dist2 < 30 && b.from !== 'opponent') {
+  if (b.explosive) {
+    // 스플래시 데미지 적용 (단순화)
+    const ratio = 1 - dist2 / (b.splashRadius || 60);
+    const splashDmg = Math.round((b.splash || 0) * ratio);
+    opponentTank.hp -= splashDmg;
+  } else {
+    opponentTank.hp -= b.dmg;
+  }
+  bullets.splice(i, 1);
+  continue;
+}
     }
   }
   // 죽은 타겟 제거
@@ -782,4 +781,5 @@ if (reloadTimer > 0) {
 </script>
 </body>
 </html>
+
 
