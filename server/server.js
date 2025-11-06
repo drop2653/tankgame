@@ -1,43 +1,50 @@
-const http = require('http');
-const WebSocket = require('ws');
+const express = require("express");
+const http = require("http");
+const WebSocket = require("ws");
+const path = require("path");
 
-// HTTP 서버 생성
-const server = http.createServer((req, res) => {
-  res.writeHead(200);
-  res.end("WebSocket server is running.");
-});
-
-// WebSocket 서버를 HTTP 서버 위에 생성
+const app = express();
+const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
-let clients = [];
+const players = {};
 
-wss.on('connection', (ws) => {
-  if (clients.length >= 2) {
-    ws.close(); // 최대 2명까지만 허용
-    return;
-  }
+wss.on("connection", (ws) => {
+  let id = null;
 
-  clients.push(ws);
-  console.log("클라이언트 접속:", clients.length);
-
-  ws.on('message', (msg) => {
-    for (let client of clients) {
-      if (client !== ws && client.readyState === WebSocket.OPEN) {
-        client.send(msg);
-      }
+  ws.on("message", (data) => {
+    const msg = JSON.parse(data);
+    if (msg.type === "join") {
+      id = msg.id;
+      players[id] = { x: 400, y: 300 };
+      broadcast({ type: "players", players });
+    }
+    if (msg.type === "shoot" && id) {
+      broadcast({ type: "shoot", id, x: msg.x, y: msg.y, vx: msg.vx, vy: msg.vy });
     }
   });
 
-  ws.on('close', () => {
-    clients = clients.filter(c => c !== ws);
-    console.log("클라이언트 종료. 남은 수:", clients.length);
+  ws.on("close", () => {
+    if (id) {
+      delete players[id];
+      broadcast({ type: "players", players });
+    }
   });
 });
 
-// Render가 사용하는 포트로 HTTP 서버 시작
-const PORT = process.env.PORT || 8080;
+function broadcast(msg) {
+  const data = JSON.stringify(msg);
+  wss.clients.forEach(client => {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(data);
+    }
+  });
+}
+
+app.use("/", express.static(path.join(__dirname, "..", "client")));
+
+const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-  console.log("HTTP/WebSocket 서버 실행 중 (포트 " + PORT + ")");
+  console.log("✅ 서버 실행 중: http://localhost:" + PORT);
 });
 
