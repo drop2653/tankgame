@@ -95,16 +95,16 @@ function sendPlayerState() {
 
 socket.addEventListener('message', (event) => {
   const msg = JSON.parse(event.data);
-  
- if (msg.type === 'state') {
-    // 기존 상태 갱신
+
+  if (msg.type === 'state') {
     opponentTank.x = msg.x;
     opponentTank.y = msg.y;
     opponentTank.angle = msg.angle;
     opponentTank.turretAngle = msg.turretAngle;
     opponentTank.hp = msg.hp;
   }
-   if (msg.type === 'bullet') {
+
+  if (msg.type === 'bullet') {
     bullets.push({
       x: msg.x,
       y: msg.y,
@@ -114,14 +114,15 @@ socket.addEventListener('message', (event) => {
       dmg: msg.dmg,
       r: msg.r,
       explosive: msg.explosive,
-      splash: msg.splash,
-      splashRadius: msg.splashRadius,
+      splash: msg.splash || 0,
+      splashRadius: msg.splashRadius || 0,
       type: msg.bulletType,
       from: 'opponent'
     });
   }
-});
+}); // ✅ 이걸로 socket listener 끝냄
 
+// ✅ 이제 즉시 실행 함수 시작
 (() => {
   // 🔊 사운드 파일 로드
 const sounds = {
@@ -158,6 +159,14 @@ window.addEventListener('click', () => {
     mass: 120, // for inertia effect (higher=slower responses)
     hp: 100,
   };
+  
+  const opponentTank = {
+  x: 100,
+  y: 100,
+  angle: 0,
+  turretAngle: 0,
+  hp: 100,
+    };
 
   const muzzleFlashes = [];
 
@@ -212,6 +221,39 @@ window.addEventListener('click', () => {
   function toRad(deg){ return deg*Math.PI/180; }
   function toDeg(rad){ return rad*180/Math.PI; }
   function angleTo(a,b){ let d = b - a; while(d>Math.PI) d-=Math.PI*2; while(d<-Math.PI) d+=Math.PI*2; return d; }
+
+  // 🔹 상대 전차 그리기 함수
+function drawOpponentTank(ctx, worldToScreen) {
+  const pos = worldToScreen(opponentTank.x, opponentTank.y);
+
+  ctx.save();
+  ctx.translate(pos.x, pos.y);
+  ctx.rotate(opponentTank.angle);
+
+  // 차체
+  ctx.fillStyle = '#a55';
+  ctx.fillRect(-28, -18, 56, 36);
+
+  // 궤도
+  ctx.fillStyle = '#333';
+  ctx.fillRect(-28, -26, 56, 8);
+  ctx.fillRect(-28, 18, 56, 8);
+  ctx.restore();
+
+  // 포탑
+  ctx.save();
+  ctx.translate(pos.x, pos.y);
+  ctx.rotate(opponentTank.turretAngle);
+  ctx.fillStyle = '#a33';
+  ctx.fillRect(0, -3, 42, 6);
+  ctx.restore();
+
+  // HP 바
+  ctx.fillStyle = '#f00';
+  ctx.fillRect(pos.x - 20, pos.y - 40, 40, 6);
+  ctx.fillStyle = '#0f0';
+  ctx.fillRect(pos.x - 20, pos.y - 40, 40 * (opponentTank.hp / 100), 6);
+}
 
   // Input: map user's requested keys to codes
   // 사용자 키 매핑 (요청에 맞춤)
@@ -377,6 +419,14 @@ if (keys[keyMap.brake]) { // S키 전체 브레이크
       type: selectedAmmoKey
     });
 
+   muzzleFlashes.push({
+  x: px,
+  y: py,
+  r: info.radius * 3,
+  life: 0.2,
+  alpha: 1.0
+});
+
     if (socket.readyState === WebSocket.OPEN) {
   socket.send(JSON.stringify({
     type: "bullet",
@@ -392,26 +442,17 @@ if (keys[keyMap.brake]) { // S키 전체 브레이크
     bulletType: selectedAmmoKey
 
   }));
-    // ✅ muzzle flash 생성
-muzzleFlashes.push({
-  x: px,
-  y: py,
-  r: info.radius * 3,
-  life: 0.2,
-  alpha: 1.0
-});
-  }
-
-  // update bullets and collisions
-  function updateMuzzle(dt){
-  for (let i = muzzleFlashes.length - 1; i >= 0; i--){
+        }
+}
+  function updateMuzzle(dt) {
+  for (let i = muzzleFlashes.length - 1; i >= 0; i--) {
     const m = muzzleFlashes[i];
     m.life -= dt;
     m.alpha = m.life / 0.2;
-    if (m.life <= 0) muzzleFlashes.splice(i,1);
-
+    if (m.life <= 0) muzzleFlashes.splice(i, 1);
   }
 }
+
 function updateBullets(dt){
   for (let i=bullets.length-1;i>=0;i--){
     const b = bullets[i];
@@ -483,43 +524,6 @@ if (dist2 < 30 && b.from !== 'opponent') {
   }
 
   function draw(){
-
-  const opponentTank = {
-  x: 100, y: 100,
-  angle: 0,
-  turretAngle: 0,
-  hp: 100,
-};
-
-function drawOpponentTank(){
-  const pos = worldToScreen(opponentTank.x, opponentTank.y);
-
-  ctx.save();
-  ctx.translate(pos.x, pos.y);
-  ctx.rotate(opponentTank.angle);
-
-  ctx.fillStyle = '#a55'; // 적 전차 색상
-  ctx.fillRect(-28, -18, 56, 36);
-  ctx.fillStyle = '#333';
-  ctx.fillRect(-28, -26, 56, 8);
-  ctx.fillRect(-28, 18, 56, 8);
-  ctx.restore();
-
-  // 포탑
-  ctx.save();
-  ctx.translate(pos.x, pos.y);
-  ctx.rotate(opponentTank.turretAngle);
-  ctx.fillStyle = '#a33';
-  ctx.fillRect(0, -3, 42, 6);
-  ctx.restore();
-
-    // HP 바
-  ctx.fillStyle = '#f00';
-  ctx.fillRect(pos.x - 20, pos.y - 40, 40, 6);
-  ctx.fillStyle = '#0f0';
-  ctx.fillRect(pos.x - 20, pos.y - 40, 40 * (opponentTank.hp/100), 6);
-}
-}
 
     // clear
     ctx.fillStyle = '#263'; ctx.fillRect(0,0,W,H);
@@ -672,31 +676,40 @@ if (reloadTimer > 0) {
 
   // Draw minimapssss
   function drawMinimap(){
-    mmCtx.clearRect(0,0,mmCanvas.width,mmCanvas.height);
-    mmCtx.fillStyle = '#041'; mmCtx.fillRect(0,0,mmCanvas.width,mmCanvas.height);
-    // map scale
-    const pad = 6;
-    const sx = (mmCanvas.width-2*pad)/map.w;
-    const sy = (mmCanvas.height-2*pad)/map.h;
-    const s = Math.min(sx,sy);
-    // draw targets
-    for (const t of targets){
-      mmCtx.fillStyle = '#f55';
-      mmCtx.beginPath();
-      mmCtx.arc(pad + t.x * s, pad + t.y * s, Math.max(2, t.radius * s), 0, Math.PI*2);
-      mmCtx.fill();
-    }
-    // draw tank
-    mmCtx.save();
-    mmCtx.translate(pad + tank.x*s, pad + tank.y*s);
-    mmCtx.rotate(tank.angle - cameraAngle); // show heading relative to view
-    mmCtx.fillStyle = '#6f6';
-    mmCtx.fillRect(-6,-4,12,8);
-    mmCtx.restore();
+  mmCtx.clearRect(0, 0, mmCanvas.width, mmCanvas.height);
+  mmCtx.fillStyle = '#041';
+  mmCtx.fillRect(0, 0, mmCanvas.width, mmCanvas.height);
 
-    drawOpponentTank();
+  // map scale
+  const pad = 6;
+  const sx = (mmCanvas.width - 2 * pad) / map.w;
+  const sy = (mmCanvas.height - 2 * pad) / map.h;
+  const s = Math.min(sx, sy);
 
+  // draw targets
+  for (const t of targets){
+    mmCtx.fillStyle = '#f55';
+    mmCtx.beginPath();
+    mmCtx.arc(pad + t.x * s, pad + t.y * s, Math.max(2, t.radius * s), 0, Math.PI * 2);
+    mmCtx.fill();
   }
+
+  // draw player tank (green)
+  mmCtx.save();
+  mmCtx.translate(pad + tank.x * s, pad + tank.y * s);
+  mmCtx.rotate(tank.angle - cameraAngle);
+  mmCtx.fillStyle = '#6f6';
+  mmCtx.fillRect(-6, -4, 12, 8);
+  mmCtx.restore();
+
+  // ✅ draw opponent tank (red)
+  mmCtx.save();
+  mmCtx.translate(pad + opponentTank.x * s, pad + opponentTank.y * s);
+  mmCtx.rotate(opponentTank.angle - cameraAngle);
+  mmCtx.fillStyle = '#f44';
+  mmCtx.fillRect(-6, -4, 12, 8);
+  mmCtx.restore();
+}
 
   // UI updates
   const hpBar = document.getElementById('hpBar');
@@ -751,13 +764,14 @@ if (reloadTimer > 0) {
     last = now;
 
     updateMuzzle(dt);
+    updateBullets(dt);
+    drawOpponentTank(ctx, worldToScreen);
     checkAmmoSelect();
     updateMovement(dt);
     updateTurret(dt);
     updateCamera(dt);
     updateReload(dt);
     updateMG(dt);
-    updateBullets(dt);
     updateTargets(dt);
     sendPlayerState();
 
@@ -781,5 +795,6 @@ if (reloadTimer > 0) {
 </script>
 </body>
 </html>
+
 
 
